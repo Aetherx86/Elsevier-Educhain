@@ -1,0 +1,39 @@
+specVersion: 0.0.5
+
+schema:
+  file: ./schema.graphql
+
+dataSources:
+  - kind: ethereum
+    name: EduChain
+    network: mainnet
+
+    source:
+      address: "0xA7c59f010700930003b33aB25a7a0679C860f29c"
+      abi: EduChain
+      startBlock: 0
+
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+
+      entities:
+        - Problem
+        - Vote
+
+      abis:
+        - name: EduChain
+          file: ./abis/EduChain.json
+
+      eventHandlers:
+        - event: ProblemSubmitted(indexed uint256,indexed address,bytes32,string,string)
+          handler: handleProblemSubmitted
+
+        - event: Voted(indexed uint256,indexed address,bool)
+          handler: handleVoted
+
+        - event: ProblemFinalized(indexed uint256,uint8)
+          handler: handleProblemFinalized
+
+      file: ./src/edu-chain.ts

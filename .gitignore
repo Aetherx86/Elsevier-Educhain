@@ -1,0 +1,46 @@
+# Remix compiler artifacts
+**/artifacts/
+**/artifacts/**
+
+# Hardhat build cache (regenerated on every compile, causes merge conflicts)
+cache/
+
+# Foundry build output/cache (regenerated on every forge run)
+forge-cache/
+out/
+
+# Remix plugin state folders
+deps/
+states/
+
+# Debug info
+*.dbg.json
+*.tsbuildinfo
+.DS_Store
+*/.DS_Store
+
+# Optional
+.env
+.env.local
+node_modules
+Devirtualization/
+dist/
+cache/
+hardhat_node.log
+.*.log
+*.log
+
+# [보안/저작권 보호] 키 서버 비밀키 및 ZK 대용량 산출물
+scripts/.keystore.json
+zk/build/
+
+# Subgraph local data
+subgraph/data/
+
+# Legacy unused prototypes
+old/
+
+# [특허 출원 명세서 보호] 미출원 특허 명세서 원본
+*patent*
+*PATENT*
+docs/preview-*.png

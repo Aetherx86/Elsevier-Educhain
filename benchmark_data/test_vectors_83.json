@@ -1,0 +1,58 @@
+{
+  "framework": "Hardhat & Node.js TDD Harness",
+  "total_unit_tests": 38,
+  "total_tdd_assertions": 83,
+  "pass_rate_percent": 100.0,
+  "test_suites": [
+    {
+      "suite": "IPFS Storage & Multihash Truncation",
+      "assertions": 8,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Poseidon Authorship Hash Binding",
+      "assertions": 9,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Groth16 Front-Running Defense (Theorem 1)",
+      "assertions": 10,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Review Bond Staking & Atomic Rollover",
+      "assertions": 12,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Verifiable Random Assignment Quorum (Proposition 1)",
+      "assertions": 8,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Wash-Trading Negative-Sum Depletion (Theorem 2)",
+      "assertions": 11,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Fleiss Kappa Consensus Transition",
+      "assertions": 7,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Dynamic Reputation Engine ([0.50x, 2.00x])",
+      "assertions": 6,
+      "status": "PASSED"
+    },
+    {
+      "suite": "Gasless Meta-Transactions (ERC-2771 / EIP-2612)",
+      "assertions": 7,
+      "status": "PASSED"
+    },
+    {
+      "suite": "End-to-End Problem Settlement Pipeline",
+      "assertions": 5,
+      "status": "PASSED"
+    }
+  ]
+}

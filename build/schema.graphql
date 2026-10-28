@@ -1,0 +1,23 @@
+# [2026-07-26 업데이트] 
+# 보고서 2. The Graph 스키마 (React에서 빠른 검색)
+# - 블록체인에는 32바이트(ipfsCid)만 저장되지만, ProblemSubmitted 이벤트를 통해 
+#   subject(과목)와 authorName(작성자)을 파라미터로 넘겨 The Graph에서 인덱싱하도록 설계했습니다.
+# - 이를 통해 프론트엔드(React)에서 과목/작성자 필터링 시 IPFS 조회 없이 GraphQL만으로 빠르게 검색 가능합니다.
+
+type Problem @entity(immutable: false) {
+  id: ID!                
+  provider: Bytes!       
+  ipfsCid: Bytes!       
+  status: Int!           
+  subject: String
+  title: String
+  authorName: String
+  content: String
+}
+
+type Vote @entity(immutable: true) {
+  id: ID!                
+  problemId: BigInt!     
+  verifier: Bytes!       
+  isCorrect: Boolean!    
+}

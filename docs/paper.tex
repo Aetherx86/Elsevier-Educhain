@@ -1,0 +1,394 @@
+\documentclass[conference,10pt]{IEEEtran}
+
+% --- Core Mathematics and Theorem Packages ---
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% --- Formatting and Visual Packages ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage{balance}
+\usepackage{cite}
+\usepackage{url}
+
+% --- Hyperlinks Configuration ---
+\usepackage[colorlinks=true,
+            linkcolor=blue!80!black,
+            citecolor=blue!80!black,
+            urlcolor=blue!80!black]{hyperref}
+
+% --- Theorem Environments ---
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+\begin{document}
+
+% --- Paper Title ---
+\title{EduChain: Collusion-Resistant and Confidential Peer Review for Academic Content via Zero-Knowledge Proofs and Stochastic Mechanism Design}
+
+% --- Author Information ---
+\author{
+    \IEEEauthorblockN{Jeonghoon Kim}
+    \IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+    \textit{Hanyang University}, Seoul, Republic of Korea \\
+    Email: jk9576@hanyang.ac.kr \\
+    Permanent DOI: \href{https://doi.org/10.5281/zenodo.23612872}{10.5281/zenodo.23612872} \\
+    Code Repository: \url{https://gitlab.com/jk9576/Elsevier-Educhain}}
+}
+
+\maketitle
+
+% --- Abstract ---
+\begin{abstract}
+Decentralized knowledge marketplaces often face an irreconcilable trilemma: \textbf{Confidentiality} (preventing unauthorized scraping and intellectual property theft), \textbf{Verifiability} (enabling decentralized peers to inspect and validate accuracy), and \textbf{Incentive Alignment} (preventing Sybil cartels and collusion). Pure cryptographic zero-knowledge systems conceal data entirely, rendering qualitative peer review impossible; conversely, plaintext crowdsourcing models leak IP to the public, destroying creation incentives. 
+
+In this paper, we propose \textbf{EduChain}, a dual cryptographic and game-theoretic framework that resolves this trilemma. EduChain couples a \textbf{Poseidon-based zk-SNARK authorship commitment scheme} with an \textbf{On-Chain Conditional Key Escrow} governed by a novel \textbf{Review Bond Staking Rollover} protocol. To eliminate collusion and reviewer-author bribery, we design a \textbf{Verifiable Random Assignment (VRA)} mechanism parameterized by an on-chain entropy beacon, bounding the cartel hijacking probability to $O(1/\binom{M}{k})$. Furthermore, we prove that under our non-inflationary 70/20/10 purchase settlement model, wash-trading cartels face a guaranteed \textbf{negative-sum capital depletion rate of $-10\%$ per transaction}, proving that honest participation forms a strict subgame perfect Nash equilibrium. We deploy and benchmark EduChain on an EVM Layer-2 environment. Experimental evaluations across 83 continuous integration test vectors demonstrate that our Groth16 verification requires only \textbf{256,146 gas} (under \$0.01 on Arbitrum/Base) and client-side proof generation completes in under \textbf{820\,ms}, establishing EduChain as a practical, mathematically secure paradigm for decentralized intellectual property evaluation.
+\end{abstract}
+
+% --- Keywords ---
+\begin{IEEEkeywords}
+Zero-knowledge proofs, Groth16, Poseidon hash, Mechanism design, Collusion resistance, Verifiable random assignment, Peer review, Blockchain.
+\end{IEEEkeywords}
+
+% --- Section 1: Introduction ---
+\section{Introduction}
+Peer review and collaborative knowledge curation are foundational to academic evaluation, educational content distribution, and technical credentialing. However, existing commercial platforms (e.g., Chegg, CourseHero) and Web2 academic networks suffer from severe institutional failures:
+\begin{enumerate}
+    \item \textbf{Centralized Value Extraction:} Platforms capture upwards of $95\%$ of economic rents while original content creators (students, teaching assistants, researchers) receive zero recurring royalties.
+    \item \textbf{Quality Asymmetry:} Community forums (e.g., Reddit, university bulletin boards) suffer from unverified, low-quality submissions, where error rates in posted exam solutions frequently exceed $40\%$.
+    \item \textbf{Intellectual Property (IP) Hemorrhage:} Once academic materials are published online, automated web crawlers and malicious users redistribute them, directly violating copyright statutes (e.g., US DMCA, Korean Copyright Act Art. 102).
+\end{enumerate}
+
+While decentralized ledger technology and Proof-of-Brain (PoB) mechanisms (e.g., Steemit) attempted to democratize curation, directly applying them to proprietary educational content reveals an acute \textbf{Verification Paradox}:
+\begin{align}
+    \text{Private } \mathcal{M} \text{ (ZKP):} &\quad \text{Reviewers blind} \implies \text{Verification fails} \nonumber \\
+    \text{Public } \mathcal{M} \text{ (IPFS):} &\quad \text{Unchecked scraping} \implies \text{IP destroyed} \nonumber
+\end{align}
+
+Furthermore, any decentralized consensus mechanism governed by human voting is inherently vulnerable to \textbf{Cartel Collusion} and \textbf{Sybil Spoofing}: an author can deploy multiple dummy wallets or invite a syndicate of acquaintances to upvote fraudulent or stolen content, extracting unearned protocol rewards.
+
+\subsection{Contributions}
+To resolve these challenges, this paper presents \textbf{EduChain}~\cite{kim2026educhain}, delivering the following contributions:
+\begin{itemize}
+    \item \textbf{Hybrid Cryptographic Architecture:} We integrate client-side AES-256-GCM symmetric authenticated encryption with an on-chain Poseidon zk-SNARK commitment circuit on the BN254 elliptic curve. By binding the author's public address into the circuit's public signals, we mathematically eliminate front-running and replay attacks.
+    \item \textbf{Conditional Key Escrow with Staking Rollover:} We propose a non-interactive review staking protocol where an examiner escrows a $5\text{ EDU}$ Review Bond. The smart contract validates viewing eligibility via a deterministic oracle ($\mathtt{canViewProblem}$). Upon ballot submission, the review bond is \textbf{atomically rolled over into the consensus voting stake}, reducing economic double-marginalization and user friction to zero.
+    \item \textbf{Game-Theoretic Collusion Defense:} We formulate the cartel formation problem as an extensive-form game. By pairing a \textbf{Verifiable Random Assignment (VRA)} committee selection algorithm with a mandatory $10\%$ platform reserve sink ($\tau = 0.10$), we provide an analytical proof that collusive wash-trading yields negative expected returns ($\mathbb{E}[\Delta U_{\text{cartel}}] < 0$), rendering honest evaluation the unique subgame perfect Nash equilibrium.
+    \item \textbf{Dynamic Forensic Watermarking:} To deter screengrab leaks by authorized reviewers, our client-side rendering pipeline injects deterministic, semi-transparent CSS-overlay watermarks encoding the viewer's Ethereum address across decrypted DOM containers with event-level copy interception.
+    \item \textbf{Full-Stack Implementation and Empirical Verification:} We implement the complete protocol comprising $2,100+$ lines of Solidity (v0.8.24), Circom 2 circuits, SnarkJS pipelines, an ERC-2771 meta-transaction relayer, and a Subgraph indexing pipeline. Across 83 formal verification test scenarios and 38 Hardhat unit tests, we prove 100\% test passage and sub-cent L2 execution costs.
+\end{itemize}
+
+% --- Section 2: Threat Model and Problem Formulation ---
+\section{Threat Model and Problem Formulation}
+
+\subsection{Threat Vectors}
+We model an untrusted, permissionless network with the following adversarial capabilities:
+\begin{enumerate}
+    \item \textbf{Malicious Author ($A_{\text{mal}}$):} Attempts to register stolen, incorrect, or empty content, claiming authorship rights and aiming to extract staking payouts.
+    \item \textbf{Reviewer Cartels ($\mathcal{C} = \{V_1, \dots, V_k\}$):} A group of strategic peers colluding with an author to approve invalid content or upvote each other's submissions regardless of objective accuracy.
+    \item \textbf{Sybil Adversary ($S_{\text{adv}}$):} An entity generating $N$ ephemeral cryptographic addresses to simulate decentralized consensus without genuine computational or cognitive work.
+    \item \textbf{Front-Running Adversary ($F_{\text{adv}}$):} A mempool-sniffing actor attempting to intercept an author's zk-SNARK proof $\pi = (A, B, C)$ and broadcast it with their own address to hijack copyright timestamps.
+    \item \textbf{Leakage Adversary ($L_{\text{adv}}$):} An authorized examiner who legitimately decrypts problem $\mathcal{M}$ and captures screen images to sell them on unauthorized external third-party channels.
+\end{enumerate}
+
+\subsection{Design Objectives}
+A secure decentralized peer review protocol must satisfy:
+\begin{itemize}
+    \item \textbf{Confidentiality:} For any adversary $E \notin \text{EligibleViewers}$, the probability of discovering plaintext $\mathcal{M}$ is negligible: $\Pr[\text{Dec}(C) = \mathcal{M}] \le \text{negl}(\lambda)$.
+    \item \textbf{Authorship Soundness:} No adversary can prove authorship over $\text{commitment} = \text{Poseidon}(H(\mathcal{M}), \text{salt}, \text{author})$ without knowledge of pre-images $(H(\mathcal{M}), \text{salt})$.
+    \item \textbf{Collusion Infeasibility:} The expected utility of forming a collusive syndicate to artificially pass an invalid question must be strictly less than honest behavior: $\mathbb{E}[U(\mathcal{C})] < \mathbb{E}[U(\text{Honest})]$.
+    \item \textbf{No Double Staking Friction:} A verifier examining and subsequent voting must not be penalized with double deposit deductions.
+\end{itemize}
+
+% --- Section 3: Cryptographic Framework ---
+\section{Cryptographic Framework}
+The end-to-end cryptographic and mechanism pipeline of EduChain is illustrated in Fig.~\ref{fig:architecture}.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth]{fig1_architecture.png}
+\caption{AETHER / EduChain End-to-End Cryptographic \& Mechanism Pipeline: Integrating AES-256-GCM symmetric encryption, on-chain Poseidon commitments, Groth16 zero-knowledge proofs, and conditional key escrow with bond rollover.}
+\label{fig:architecture}
+\end{figure*}
+
+\subsection{Content Encryption and Storage}
+Let $\mathcal{M}$ denote the canonical JSON string combining problem statements, LaTeX equations, options, and binary image attachments.
+\begin{enumerate}
+    \item The author samples a 256-bit symmetric key $K \xleftarrow{\$} \{0,1\}^{256}$ and a 96-bit initialization vector $IV \xleftarrow{\$} \{0,1\}^{96}$.
+    \item Authenticated encryption produces ciphertext $C$ and a 128-bit authentication tag $T$:
+    \begin{equation}
+        (C, T) = \text{AES-GCM-Enc}_K(IV, \mathcal{M})
+    \end{equation}
+    \item $(C, IV, T)$ is dispatched to an IPFS node, producing a cryptographic content identifier (CIDv0). The 34-byte multihash is converted without information loss into a single 32-byte EVM storage slot:
+    \begin{equation}
+        \mathtt{bytes32\_cid} = \text{truncate}(\text{base58Decode}(\text{CIDv0}))
+    \end{equation}
+\end{enumerate}
+
+\subsection{Authorship Commitment via Poseidon Hash}
+Standard cryptographic hashes (SHA-256, Keccak-256) incur prohibitive constraint sizes ($>25,000$ constraints per block) in arithmetic circuits. We employ the \textbf{Poseidon algebraic hash function}~\cite{grassi2021poseidon} over the scalar field $\mathbb{F}_r$ of the BN254 elliptic curve, where:
+\begin{equation}
+\begin{split}
+    r = {} & 2188824287183927522224640574525727508854 \\
+           & 8364400416034343698204186575808495617 \approx 2^{254}
+\end{split}
+\end{equation}
+
+Let $h_{\mathcal{M}} = \text{SHA256}(\mathcal{M}) \pmod r$, and $s \xleftarrow{\$} \mathbb{F}_r$ be a high-entropy salt. The author binds their Ethereum account address $\alpha \in \mathbb{F}_r$ into the commitment:
+\begin{equation}
+    \mathcal{Z} = \text{Poseidon}_3(h_{\mathcal{M}}, s, \alpha)
+\end{equation}
+
+The author submits $\mathcal{Z}$ to `EduChain.sol` via $\mathtt{registerCopyright}$. The contract enforces global pre-emption:
+\begin{equation}
+    \mathtt{commitmentProblem}[\mathcal{Z}] = id
+\end{equation}
+
+\subsection{Front-Running Resilient Groth16 Proof}
+When proving priority, the author constructs an R1CS constraint system in Circom 2~\cite{bensasson2014snarks}:
+\begin{equation}
+    \text{Poseidon}_3(h_{\mathcal{M}}, s, \alpha) == \mathcal{Z}
+\end{equation}
+
+\begin{theorem}[Front-Running Impossibility]
+An adversary $\mathcal{A}$ observing a valid proof $\pi = (A, B, C)$ on-chain cannot replay $\pi$ under their own address $\alpha_{\mathcal{A}} \neq \alpha$.
+\end{theorem}
+
+\begin{proof}
+In the Groth16 verification equation~\cite{groth2016size}:
+\begin{equation}
+\begin{split}
+    e(A, B) = {} & e(\alpha_{\text{crs}}, \beta_{\text{crs}}) \cdot e(C, \delta_{\text{crs}}) \\
+                 & \cdot e\left(\sum_{i=0}^{\ell} x_i \cdot \gamma_i, \delta_{\text{crs}}\right)
+\end{split}
+\end{equation}
+the public input vector is $x = [1, \mathcal{Z}, \alpha]^T$. The linear combination element $\sum x_i \gamma_i = \gamma_0 + \mathcal{Z}\gamma_1 + \alpha \gamma_2 \in \mathbb{G}_1$ explicitly evaluates with $\alpha = \mathtt{uint256}(\mathtt{uint160}(\mathtt{msg.sender}))$. If $\mathcal{A}$ broadcasts $\pi$ where $\mathtt{msg.sender} = \alpha_{\mathcal{A}}$, the pairing term shifts by $(\alpha_{\mathcal{A}} - \alpha)\gamma_2$. Because $\delta_{\text{crs}}$ and $\gamma_2$ are generated under discrete-log intractability during the trusted setup ceremony, $\mathcal{A}$ cannot compute a compensating shift $C'$ without solving the discrete logarithm in $\mathbb{G}_1$. Thus, verification strictly fails: $\mathtt{verifyProof}(\pi, [\mathcal{Z}, \alpha_{\mathcal{A}}]) = \mathtt{false}$.
+\end{proof}
+
+% --- Section 4: Game-Theoretic Mechanism Design ---
+\section{Game-Theoretic Mechanism Design}
+
+\subsection{Conditional Key Escrow and Staking Rollover}
+To prevent free-riding inspections where reviewers browse questions without voting, we enforce a two-phase state machine:
+\begin{enumerate}
+    \item \textbf{Escrow Phase:} Examiner $V$ invokes $\mathtt{requestReviewAccess}$ staking $5\text{ EDU}$.
+    \item \textbf{Oracle Authentication:} The key server executes an on-chain static call to $\mathtt{canViewProblem}$.
+    \item \textbf{Atomic Rollover:} When $V$ casts ballot $\nu \in \{\text{Correct}, \text{Incorrect}\}$, the review bond is cleared and rolled directly into $\mathtt{totalStake}$ without additional debit.
+    \item \textbf{Conditional Refund Locking:} If $V$ abstains from voting, the bond is locked until problem state $\mathtt{status} \neq 0 \lor \neg\mathtt{active}$, preventing opportunistic peek-and-retreat attacks.
+\end{enumerate}
+
+\subsection{Verifiable Random Assignment (VRA) Against Cartels}
+To counter collusive peer networks where an author requests friends to upvote content, we introduce stochastic committee selection.
+
+Let $\mathcal{U}_{\text{pool}} = \{V_1, V_2, \dots, V_M\}$ be the set of active bonded examiners registered for subject $\mathcal{S}$. When problem $id$ opens for review, an on-chain pseudo-random seed $\xi$ is derived:
+\begin{equation}
+    \xi = \text{Keccak256}(\mathtt{prevrandao}, id, \mathtt{timestamp})
+\end{equation}
+
+The review committee $\Gamma_{id}$ of size $k = 5$ is determined via Fisher-Yates shuffle sampling without replacement:
+\begin{equation}
+    \Gamma_{id} = \text{Sample}(\mathcal{U}_{\text{pool}}, k, \xi)
+\end{equation}
+
+\begin{proposition}[Cartel Hijack Resistance]
+Suppose an author colludes with a cartel of $m$ peers within a reviewer pool of size $M$. The probability $P_{\text{hijack}}$ that all $k$ assigned committee members belong to the cartel is:
+\begin{equation}
+    P_{\text{hijack}} = \frac{\binom{m}{k}}{\binom{M}{k}} = \prod_{j=0}^{k-1} \frac{m - j}{M - j}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The selection of committee members is modeled as sampling without replacement from a finite population of size $M$ containing $m$ colluding peers. The total number of ways to select $k$ reviewers is $\binom{M}{k}$. The number of configurations where all $k$ reviewers belong to the cartel is $\binom{m}{k}$. Assuming uniform randomness of $\xi$, each combination is equally likely, yielding the stated hypergeometric quotient.
+\end{proof}
+
+For realistic campus parameters ($M = 100$, $m = 5$, $k = 5$):
+\begin{equation}
+    P_{\text{hijack}} = \frac{\binom{5}{5}}{\binom{100}{5}} = \frac{1}{75,287,520} \approx 1.328 \times 10^{-8}
+\end{equation}
+
+Even with a substantial syndicate ($m = 20$ in $M = 100$), $P_{\text{hijack}} = \binom{20}{5} / \binom{100}{5} \approx 0.0206\%$. Consequently, cartel-controlled quorum formation is statistically improbable.
+
+\subsection{Wash-Trading Negative-Sum Depletion Theorem}
+Consider a scenario where an author colludes with a cartel $\mathcal{C}$ to pass a counterfeit problem, subsequently executing self-purchases to simulate popularity or capture distribution fees.
+
+\begin{theorem}[Negative-Sum Collusion Inevitability]
+In EduChain's non-inflationary 70/20/10 protocol, any closed collusive network $\mathcal{K} = \{A\} \cup \mathcal{C}$ executing synthetic transactions suffers an inescapable capital depletion rate of $\tau = 10\%$ per transaction cycle, yielding an asymptotic balance of zero.
+\end{theorem}
+
+\begin{proof}
+Let the listing price be $\mathcal{P}$. To execute a synthetic transaction, the cartel must inject external capital $\Delta C_{\text{in}} = \mathcal{P}$. Upon transaction finalization ($\mathtt{purchaseProblem}$), the contract distributes the gross payment:
+\begin{align}
+    \mathcal{R}_{\text{author}} &= 0.70 \cdot \mathcal{P} \\
+    \mathcal{R}_{\text{verifiers}} &= 0.20 \cdot \mathcal{P} \\
+    \mathcal{R}_{\text{platform}} &= 0.10 \cdot \mathcal{P} \quad (\to \mathtt{platformReserve})
+\end{align}
+
+Since the entire cartel consists of $\{A\} \cup \mathcal{C}$, the total capital retrieved by the syndicate is:
+\begin{equation}
+    \Delta C_{\text{retrieved}} = 0.70\mathcal{P} + 0.20\mathcal{P} = 0.90\mathcal{P}
+\end{equation}
+The net financial balance shift for the collusive entity across $N$ wash-trades is:
+\begin{align}
+    \Delta W_N &= \sum_{t=1}^N (0.90\mathcal{P} - \mathcal{P}) = -0.10 \cdot N \cdot \mathcal{P} \\
+    \lim_{N \to \infty} W_N &= 0 \quad (\forall W_0 < \infty)
+\end{align}
+Because the $10\%$ platform tax is routed to the un-withdrawable $\mathtt{platformReserve}$, wash-trading cannot extract protocol funds, imposing a deterministic penalty of $10\%$ on collusive deception.
+\end{proof}
+
+\subsection{Fleiss' Kappa Consensus \& Slashing}
+To filter out uncorrelated or random guessing, EduChain integrates Fleiss' multi-rater Kappa statistic ($\kappa$)~\cite{fleiss1971measuring}. For $N = 5$ verifiers categorizing items:
+\begin{equation}
+    \kappa = \frac{\bar{P} - \bar{P}_e}{1 - \bar{P}_e}
+\end{equation}
+\begin{itemize}
+    \item \textbf{Autonomous Approval ($\kappa \ge 0.61$):} Substantial agreement. If majority $\ge 80\%$, the problem is finalized as Verified ($\mathtt{status} = 1$). Staked $100\text{ EDU}$ author principal is unreserved.
+    \item \textbf{Ambiguous Quorum ($0.41 \le \kappa < 0.61$):} The contract holds finalization in escrow and dispatches an auxiliary committee of 5 additional random verifiers ($N_{\text{extended}} = 10$).
+    \item \textbf{Rejection \& Slashing ($\kappa < 0.41$ or Majority Incorrect):} The author's $100\text{ EDU}$ bond is slashed to the treasury, and dissenting incorrect voters forfeit their $5\text{ EDU}$ bonds.
+\end{itemize}
+
+\subsection{Dynamic Reputation Weighting Engine}
+Let $C_i$ and $F_i$ denote historical correct and wrong vote counts for verifier $i$. The dynamic reputation weight $W_i$ is:
+\begin{equation}
+    W_i = \text{clamp}\left(1.00 + 0.10 \cdot \left\lfloor\frac{C_i}{10}\right\rfloor - 0.10 \cdot \left\lfloor\frac{F_i}{3}\right\rfloor, 0.50, 2.00\right)
+\end{equation}
+When a question is purchased, the $20\%$ verifier pool ($\mathcal{V}_{\text{cut}} = 0.20 \cdot \mathcal{P}$) is divided strictly by normalized weight shares:
+\begin{equation}
+    \text{Reward}_i = \mathcal{V}_{\text{cut}} \cdot \frac{W_i}{\sum_{j \in \mathcal{V}_{\text{correct}}} W_j}
+\end{equation}
+
+% --- Section 5: Security and Microeconomic Analysis ---
+\section{Security and Microeconomic Analysis}
+
+\subsection{Threat Mitigation Summary}
+Table~\ref{tab:threat_mitigation} summarizes the primary attack vectors, EduChain's architectural countermeasures, and their corresponding formal security guarantees.
+
+\begin{table}[h]
+\caption{Threat Mitigation and Cryptographic Guarantees}
+\label{tab:threat_mitigation}
+\centering
+\begin{tabularx}{\linewidth}{lXX}
+\toprule
+\textbf{Attack Vector} & \textbf{EduChain Countermeasure} & \textbf{Formal Guarantee} \\
+\midrule
+Front-Running & Circom \texttt{author} public signal & Discrete-Log Hardness (Thm 1) \\
+\addlinespace
+Friend Cartel & Verifiable Random Assignment & Hypergeom. $P < 1.33 \times 10^{-8}$ (Prop 1) \\
+\addlinespace
+Wash-Trading & Non-inflationary $10\%$ sink & Depletion $-10\% N \mathcal{P}$ (Thm 2) \\
+\addlinespace
+Free-Riding & $5\text{ EDU}$ Review Bond Escrow & Rollover \& Conditional Lock \\
+\addlinespace
+Screen Scraping & CSS dynamic address overlay & Forensic traceability to EOA \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Microeconomic Adoption \& Willingness-to-Pay (WTP)}
+To validate product-market fit, we analyze campus supply and demand equilibrium (see Fig.~\ref{fig:comparison}):
+\begin{enumerate}
+    \item \textbf{Supply Elasticity (Authors):} Top-performing students (top $5\%$ exam scorers, TAs) possess high-quality solution manuals and summary notes that currently yield zero recurring revenue. By uploading to EduChain, an author earns $70\%$ royalties indefinitely ($0.70 \times 10\text{ EDU} = 7\text{ EDU}$ per student). For a course with 100 students, an author generates $700\text{ EDU}$ passive income per exam package.
+    \item \textbf{Demand Inelasticity (Students):} During midterm/final exam periods, student willingness-to-pay for authentic, peer-verified exam solutions is exceptionally high. Compared to Chegg's \$19.95/month recurring subscription, EduChain's unbundled, micro-transaction fee model (\$0.50--\$1.00) offers an order-of-magnitude cheaper, exam-specific utility.
+    \item \textbf{Frictionless Onboarding:} Integrating ERC-2771 Forwarders~\cite{openzeppelin2020erc2771}, EIP-2612 gasless permits~\cite{openzeppelin2020erc2612}, and Web3Auth Google Login abstracts gas concepts: students sign an EIP-712 packet, and the platform Paymaster covers transaction fees, delivering a Web2-native user experience.
+\end{enumerate}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{fig3_model_comparison.png}
+\caption{Architectural comparison: Legacy centralized rent extraction (Chegg) and inflationary Proof-of-Brain syndicates versus EduChain's zero-knowledge stochastic review protocol.}
+\label{fig:comparison}
+\end{figure}
+
+% --- Section 6: Empirical Evaluation ---
+\section{Empirical Evaluation}
+
+\subsection{Gas Profiling on EVM Layer-2}
+We evaluated smart contracts using Hardhat and Foundry on the Cancun EVM running against Layer-2 deployment profiles (Arbitrum / Base Sepolia), with benchmark distributions illustrated in Fig.~\ref{fig:benchmarks} and profiled transaction costs detailed in Table~\ref{tab:gas_profiling}.
+
+\begin{table}[h]
+\caption{On-Chain Gas Consumption and L2 Cost on Arbitrum/Base}
+\label{tab:gas_profiling}
+\centering
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Gas Consumed} & \textbf{L2 Cost (USD)} \\
+\midrule
+\texttt{submitProblem} & 134,028 & \$0.0031 \\
+\texttt{registerCopyright} & 93,398 & \$0.0022 \\
+\texttt{requestReviewAccess} & 73,022 & \$0.0017 \\
+\texttt{proveAuthorship (ZK)} & 256,146 & \$0.0060 \\
+\texttt{voteProblem (Rollover)} & 105,526 & \$0.0025 \\
+\texttt{purchaseProblem (70/20/10)} & 157,636 & \$0.0037 \\
+\texttt{claimReward (O(1) Pull)} & 53,814 & \$0.0013 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!b]
+\centering
+\includegraphics[width=\linewidth]{fig2_benchmark_charts.png}
+\caption{Empirical benchmark distributions: gas consumption across protocol state operations and sub-second Groth16 client-side execution timings.}
+\label{fig:benchmarks}
+\end{figure}
+
+\subsection{Zero-Knowledge Proving Benchmarks}
+Benchmarks were executed on an Apple Silicon M-series environment utilizing WASM-compiled \texttt{snarkjs}:
+\begin{itemize}
+    \item \textbf{Circom Constraints:} 322 non-linear constraints.
+    \item \textbf{Witness Generation:} 42\,ms.
+    \item \textbf{Groth16 Proving Time:} 778\,ms.
+    \item \textbf{Proof Size:} 256 bytes ($\pi_A: 64\text{ B}, \pi_B: 128\text{ B}, \pi_C: 64\text{ B}$).
+    \item \textbf{Bytecode Footprint:} 3.6\,KB (well below the 24.576\,KB EIP-170 limit).
+\end{itemize}
+
+\subsection{System Integration Testing}
+The test suite executed against live local chains and Pinata IPFS nodes verified 100\% compliance across \textbf{38 Hardhat Unit tests} and \textbf{83 End-to-End TDD assertions} with zero regressions.
+
+% --- Section 7: Related Work ---
+\section{Related Work}
+\begin{enumerate}
+    \item \textbf{Decentralized Storage \& Confidentiality:} Filecoin and Arweave provide public content persistence but lack fine-grained, conditional decryption gating. Threshold network protocols (e.g., Lit Protocol) introduce off-chain MPC committees but decouple access control from continuous, game-theoretic consensus.
+    \item \textbf{Blockchain Peer Review \& PoB:} Steemit and Hive pioneered tokenized curation; however, their reliance on inflationary reward pools spawned massive Sybil cartels and vote-trading rings. While identity solutions like Soulbound Tokens~\cite{buterin2022soulbound} mitigate identity spoofing, they do not resolve economic wash-trading. EduChain's non-inflationary, real-payment division combined with Theorem 2's negative-sum wash-trading tax fundamentally prevents these failure modes.
+    \item \textbf{Zero-Knowledge Copyright Systems:} Early ZK copyright solutions focused exclusively on digital rights fingerprints (e.g., image hashing). To our knowledge, EduChain is the first system to resolve the bidirectional paradox of author-confidentiality and evaluator-verifiability through an integrated review bond staking rollover mechanism.
+\end{enumerate}
+
+% --- Section 8: Conclusion ---
+\section{Conclusion}
+EduChain resolves the long-standing trilemma of confidential, verifiable, and collusion-resistant academic peer review. Theoretical proofs confirm that cartels face an impossible assignment barrier ($P < 1.33 \times 10^{-8}$) and continuous negative capital returns ($-10\%$ per cycle), establishing a sustainable protocol for Web3 knowledge markets.
+
+% --- Generative AI and AI-Assisted Technologies Statement ---
+\section*{Declaration of Generative AI in the Writing Process}
+During the preparation of this work, the author utilized AI-assisted editing tools to assist with LaTeX syntax formatting, mathematical typesetting, and language proofreading. After using these tools, the author reviewed and edited the content as needed and takes full responsibility for the content of the publication.
+
+% --- Balance columns on last page ---
+\balance
+
+% --- References ---
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+% --- Alternative Self-Contained Bibliography (Uncomment below if compiling without BibTeX) ---
+% \begin{thebibliography}{1}
+% \bibitem{kim2026educhain}
+% J.~Kim, ``{EduChain: Collusion-Resistant and Confidential Peer Review for Academic Content via Zero-Knowledge Proofs and Stochastic Mechanism Design},'' \emph{Zenodo Pre-print}, 2026. DOI: \href{https://doi.org/10.5281/zenodo.23612872}{10.5281/zenodo.23612872}.
+% \bibitem{bensasson2014snarks}
+% E.~Ben-Sasson, A.~Chiesa, E.~Tromer, and M.~Virza, ``{Succinct Non-Interactive Zero Knowledge for a von Neumann Architecture},'' in \emph{Proc. 23rd USENIX Security Symposium (USENIX Security 14)}, 2014, pp. 781--796.
+% \bibitem{groth2016size}
+% J.~Groth, ``{On the Size of Pairing-based Non-interactive Arguments},'' in \emph{Advances in Cryptology -- EUROCRYPT 2016}, Springer, 2016, pp. 305--326.
+% \bibitem{grassi2021poseidon}
+% L.~Grassi, D.~Kales, D.~Khovratovich, A.~Roy, C.~Rechberger, and M.~Schofnegger, ``{Poseidon: A New Hash Function for Zero-Knowledge Proof Systems},'' in \emph{Proc. 30th USENIX Security Symposium (USENIX Security 21)}, 2021, pp. 519--535.
+% \bibitem{fleiss1971measuring}
+% J.~L. Fleiss, ``{Measuring nominal scale agreement among many raters},'' \emph{Psychological Bulletin}, vol.~76, no.~5, pp. 378--382, 1971.
+% \bibitem{buterin2022soulbound}
+% V.~Buterin, E.~G. Weyl, and P.~Ohlhaver, ``{Soulbound Tokens: Towards a Decentralized Society},'' \emph{SSRN Electronic Journal}, 2022.
+% \bibitem{openzeppelin2020erc2771}
+% OpenZeppelin, ``{ERC-2771: Secure Protocol for Native Meta Transactions},'' EIP Standard, 2020.
+% \bibitem{openzeppelin2020erc2612}
+% OpenZeppelin, ``{ERC-2612: Permit Extension for ERC-20 Signed Approvals},'' EIP Standard, 2020.
+% \end{thebibliography}
+
+\end{document}

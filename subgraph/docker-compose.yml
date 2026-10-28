@@ -1,0 +1,55 @@
+version: "3"
+services:
+  graph-node:
+    image: graphprotocol/graph-node:v0.35.0
+    platform: linux/amd64
+    container_name: subgraph-graph-node-1
+    ports:
+      - "8000:8000"
+      - "8020:8020"
+      - "8030:8030"
+      - "8040:8040"
+    depends_on:
+      - ipfs
+      - postgres
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      postgres_host: postgres
+      postgres_user: postgres
+      postgres_pass: postgres
+      postgres_db: graph-node
+      ipfs: "ipfs:5001"
+      # ⭐ FIXED: Added 'host.' and ':8545'
+      ethereum: "mainnet:http://host.docker.internal:8545"
+      GRAPH_LOG: info
+      GRAPH_ETH_GET_BLOCK_RECEIPTS_DISABLE: "true"
+      GRAPH_ETHEREUM_BLOCK_INGESTOR_FETCH_RECEIPTS: "false"
+
+  ipfs:
+    image: ipfs/kubo:latest
+    platform: linux/amd64
+    container_name: subgraph-ipfs-1
+    ports:
+      - "5001:5001"
+    volumes:
+      - ipfs_data_down:/data/ipfs
+
+  postgres:
+    image: postgres:13
+    platform: linux/amd64
+    container_name: subgraph-postgres-1
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: graph-node
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - pg_data_down:/var/lib/postgresql/data
+
+volumes:
+  ipfs_data_down:
+  pg_data_down:

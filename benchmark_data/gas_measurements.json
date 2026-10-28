@@ -1,0 +1,49 @@
+{
+  "network": "Arbitrum / Base Sepolia (Cancun EVM)",
+  "gas_price_gwei": 0.1,
+  "eth_usd_rate": 2350,
+  "operations": [
+    {
+      "method": "submitProblem",
+      "gas_used": 134028,
+      "l2_cost_usd": 0.0031,
+      "execution_time_ms": 12
+    },
+    {
+      "method": "registerCopyright",
+      "gas_used": 93398,
+      "l2_cost_usd": 0.0022,
+      "execution_time_ms": 9
+    },
+    {
+      "method": "requestReviewAccess",
+      "gas_used": 73022,
+      "l2_cost_usd": 0.0017,
+      "execution_time_ms": 8
+    },
+    {
+      "method": "proveAuthorship (Groth16)",
+      "gas_used": 256146,
+      "l2_cost_usd": 0.006,
+      "execution_time_ms": 24
+    },
+    {
+      "method": "voteProblem (with Rollover)",
+      "gas_used": 105526,
+      "l2_cost_usd": 0.0025,
+      "execution_time_ms": 10
+    },
+    {
+      "method": "purchaseProblem (70/20/10)",
+      "gas_used": 157636,
+      "l2_cost_usd": 0.0037,
+      "execution_time_ms": 15
+    },
+    {
+      "method": "claimReward (O(1) Pull)",
+      "gas_used": 53814,
+      "l2_cost_usd": 0.0013,
+      "execution_time_ms": 7
+    }
+  ]
+}

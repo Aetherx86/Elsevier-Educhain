@@ -1,0 +1,18 @@
+{
+  "curve": "BN254 (alt_bn128)",
+  "scalar_field_r": "21888242871839275222246405745257275088548364400416034343698204186575808495617",
+  "circuit": "zk/circuits/copyright_proof.circom",
+  "compiler": "Circom 2.1.8",
+  "prover": "snarkjs (Groth16 WASM)",
+  "hardware": "Apple M-series Silicon, 16GB RAM",
+  "metrics": {
+    "non_linear_constraints": 322,
+    "witness_generation_ms": 42,
+    "groth16_proving_time_ms": 55,
+    "groth16_proving_time_cold_ms": 154,
+    "groth16_verification_time_ms": 5,
+    "proof_size_bytes": 256,
+    "verifier_contract_bytecode_kb": 3.6,
+    "eip_170_limit_kb": 24.576
+  }
+}
